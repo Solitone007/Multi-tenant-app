@@ -97,7 +97,7 @@ export default async function Dashboard({ params, searchParams }: DashboardProps
               You are currently logged in as a <strong>{membership.role}</strong>. Only workspace owners and admins can invite new members.
             </p>
             <div className="pt-2">
-              <span className="inline-block rounded-lg bg-slate-100 px-3 py-1.5 text-xs text-slate-600 font-medium">
+              <span className="inline-block rounded-lg bg-slate-100 px-3 py-1.5 text-sm text-slate-600 font-medium">
                 Total Members: {members?.length || 1}
               </span>
             </div>

@@ -51,12 +51,12 @@ export default function CreateWorkSpaceForm() {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-6 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
+    <div className="w-full max-w-md mx-auto space-y-6 rounded-2xl border border-slate-200 bg-white p-8 sm:p-8 shadow-sm">
       <div>
         <h2 className="text-xl font-bold tracking-tight text-slate-900">
           Create Workspace
         </h2>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-sm text-gray-500 font-medium">
           Set up your organization workspace to get started.
         </p>
       </div>

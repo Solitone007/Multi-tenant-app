@@ -123,7 +123,7 @@ export default async function LoginPage({ searchParams }: InviteAuthSite) {
           {inviteToken && <input type="hidden" name="inviteToken" value={inviteToken} />}
 
           <div>
-            <label htmlFor="email" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1.5">
               Email Address
             </label>
             <input 
@@ -133,7 +133,7 @@ export default async function LoginPage({ searchParams }: InviteAuthSite) {
               required
               defaultValue={initialEmail || ''}
               placeholder="name@company.com"
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-50"
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-50"
             />
           </div>
 
@@ -147,7 +147,7 @@ export default async function LoginPage({ searchParams }: InviteAuthSite) {
               name="password"
               required
               placeholder="password"
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
 

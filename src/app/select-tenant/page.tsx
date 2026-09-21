@@ -38,7 +38,7 @@ export default function SelectTenantPage() {
   }, [state, router])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-8">
       <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
         
         {/* Header with Title, Description, and Sign Out */}
@@ -47,13 +47,13 @@ export default function SelectTenantPage() {
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
               Create Workspace
             </h1>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-sm text-slate-500">
               Set up a new organization workspace to get started.
             </p>
           </div>
 
           <form action={signout}>
-            <SubmitButton className="shrink-0 cursor-pointer rounded-lg bg-red-700 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-red-800 focus:outline-none ">
+            <SubmitButton className=" cursor-pointer !rounded-full bg-red-700 !px-5 !py-1 text-sm font-semibold text-white transition hover:bg-red-800 focus:outline-none ">
               Sign Out
             </SubmitButton>
           </form>
