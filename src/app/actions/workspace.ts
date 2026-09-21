@@ -12,15 +12,15 @@ export async function createWorkspace(formData: FormData) {
     return { error: 'Workspace name and slug are required.' }
   }
 
-  // 1. Get current logged-in user session from regular cookies client
-  const supabaseUserClient = await createServerClient()
-  const { data: { user }, error: authError } = await supabaseUserClient.auth.getUser()
+  // 1. Verify the current user session using standard cookies client
+  const supabase = await createServerClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return { error: 'You must be logged in to create a workspace.' }
+    return { error: 'You must be signed in to create a workspace.' }
   }
 
-  // 2. Initialize Admin Client with Service Role Key (Bypasses RLS)
+  // 2. Instantiate Admin Client with Service Role Key (Bypasses RLS)
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -34,7 +34,7 @@ export async function createWorkspace(formData: FormData) {
 
   const tenantId = crypto.randomUUID()
 
-  // 3. Insert Tenant (bypasses RLS check)
+  // 3. Create Tenant (bypasses RLS)
   const { error: tenantError } = await supabaseAdmin
     .from('tenants')
     .insert({
@@ -47,7 +47,7 @@ export async function createWorkspace(formData: FormData) {
     return { error: `Failed to create workspace: ${tenantError.message}` }
   }
 
-  // 4. Insert Membership for Owner
+  // 4. Create Owner Membership
   const { error: memberError } = await supabaseAdmin
     .from('memberships')
     .insert({
@@ -57,7 +57,7 @@ export async function createWorkspace(formData: FormData) {
     })
 
   if (memberError) {
-    return { error: `Failed to assign membership: ${memberError.message}` }
+    return { error: `Failed to assign workspace ownership: ${memberError.message}` }
   }
 
   // 5. Redirect to Dashboard
