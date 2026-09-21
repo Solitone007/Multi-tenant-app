@@ -11,14 +11,13 @@ export default function CreateWorkSpaceForm() {
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
 
-  function slugify(text:string) {
+  function slugify(text: string) {
     return text 
       .toLowerCase()
       .trim()
       .replace(/[^\w\s-]/g, '')
       .replace(/[\s_-]+/g, '-')
       .replace(/^-+|-+$/g, '')
-
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -36,15 +35,17 @@ export default function CreateWorkSpaceForm() {
       setError(res.error)
       setLoading(false)
     }
-    else if (res?.redirectTo) {
-      router.push(res.redirectTo)
+    // Safe property check using "in" operator for TypeScript type-checking
+    else if (res && 'redirectTo' in res && res.redirectTo) {
+      router.push(res.redirectTo as string)
       setLoading(false)
       router.refresh()
+    } else {
+      setLoading(false)
     }
   }
 
   return (
-  
     <form onSubmit={handleSubmit} className="space-y-4">
       <h2 className="text-gray-700 text-xl font-bold tracking-wider">Create Workspace</h2>
       <p className="text-sm text-gray-500 mt-1">
@@ -52,50 +53,52 @@ export default function CreateWorkSpaceForm() {
       </p>
 
       {error && (
-        <div className="rounded-xl text-red-700 bg-red-80 border border-red-200 py-3 px-2 text-sm">
+        <div className="rounded-xl text-red-700 bg-red-50 border border-red-200 py-3 px-2 text-sm">
           {error}
         </div>
       )}
 
       <div>
-        <label htmlFor="name" className="text-gray-500 text-xs font-semibold mb-1">Organisation Name</label>
+        <label htmlFor="name" className="text-gray-500 text-xs font-semibold mb-1 block">Organisation Name</label>
         <input 
           type="text"
           id="name"
           required
           value={name}
-          onChange={(e)=> {
+          onChange={(e) => {
             setName(e.target.value)
             setSlug(slugify(e.target.value))
           }}
-          placeholder="org.com"
-          className="w-full rounded-xl border border-gray-300 py-2.5 px-3 focus:outline-none focus:border-blue-400 text-xs"/>
-
+          placeholder="Acme Corp"
+          className="w-full rounded-xl border border-gray-300 py-2.5 px-3 focus:outline-none focus:border-blue-400 text-xs"
+        />
       </div>
 
       <div>
-        <label htmlFor="slug" className="text-gray-500 text-xs font-semibold mb-1">Slug URL</label>
+        <label htmlFor="slug" className="text-gray-500 text-xs font-semibold mb-1 block">Slug URL</label>
         <input 
           type="text"
           id="slug"
           required
           value={slug}
-          onChange={(e)=> {
+          onChange={(e) => {
             setSlug(slugify(e.target.value))
           }}
-          placeholder="org.com"
-          className="w-full rounded-xl border border-gray-300 py-2.5 px-3 focus:outline-none focus:border-blue-400 text-xs"/>
+          placeholder="acme-corp"
+          className="w-full rounded-xl border border-gray-300 py-2.5 px-3 focus:outline-none focus:border-blue-400 text-xs"
+        />
           
-          <button 
-            type="submit"
-            disabled={loading}
-            className="rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-sm w-full px-3 py-3 mt-4 text-white font-semibold">
-              {loading ? (<div className="flex items-center justify-center gap-3">
-                <span className="h-4 w-4 border-white border-2 border-t-transparent animate-spin rounded-full"/>
-                <span className="text-sm text-white">Creating workspace...</span>
-
-              </div>): 'Organisational workspace continue'}
-          </button>
+        <button 
+          type="submit"
+          disabled={loading}
+          className="rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-sm w-full px-3 py-3 mt-4 text-white font-semibold">
+          {loading ? (
+            <div className="flex items-center justify-center gap-3">
+              <span className="h-4 w-4 border-white border-2 border-t-transparent animate-spin rounded-full"/>
+              <span className="text-sm text-white">Creating workspace...</span>
+            </div>
+          ) : 'Continue to Workspace'}
+        </button>
       </div>
     </form>
   )
