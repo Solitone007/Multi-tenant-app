@@ -1,5 +1,12 @@
 [build]
   command = "npm run build"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+[build.processing]
+  skip_processing = false
+
+[build.processing.html]
+  pretty_urls = true
+
+# Disable automatic form detection if using custom API routes/actions
+[forms]
+  detect = false
