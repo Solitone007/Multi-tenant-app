@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -29,7 +29,6 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Do NOT remove getUser() as it refreshes expired auth sessions
   await supabase.auth.getUser()
 
   return supabaseResponse
@@ -37,7 +36,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

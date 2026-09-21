@@ -8,8 +8,8 @@ export async function acceptInvitation (token: string) {
 
   const { data: {user}} = await supabase.auth.getUser()
   if (!user) {
-    redirect(`/login?next=${token}&error=${encodeURIComponent('please sign in or create an account to accept invitation')}`)
-
+   const nextPath = encodeURIComponent(`/accept-invite?token=${token}`)
+    redirect(`/login?next=${nextPath}&error=${encodeURIComponent('please sign in or create an account to accept invitation')}`)
   }
 
   const {data: invite, error: inviteError} = await supabase

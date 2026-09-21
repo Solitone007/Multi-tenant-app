@@ -1,68 +1,73 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server' // Adjust to your Supabase client path
-import { redirect } from 'next/navigation'
+import { createClient } from "@/utils/supabase/server"
+import { redirect } from "next/navigation"
 
 export async function acceptInvitation(token: string) {
   const supabase = await createClient()
 
-  // 1. Get the current user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  
-  if (authError || !user) {
-    // If not logged in, send them to signup/login with the token as a redirect parameter
-    redirect(`/login?next=/invite/${token}`)
+  // 1. Authenticate User
+  const { data: { user }, error: dataError } = await supabase.auth.getUser()
+
+  if (dataError || !user) {
+    const nextPath = encodeURIComponent(`/accept-invite?token=${token}`)
+    redirect(`/login?next=${nextPath}`)
   }
 
-  // 2. Fetch the invitation details
+  // 2. Fetch Invitation + Join Tenant
   const { data: invite, error: inviteError } = await supabase
     .from('invitations')
     .select('*, tenants(slug, name)')
     .eq('token', token)
-    .single()
+    .maybeSingle()
 
   if (inviteError || !invite) {
-    return { error: 'Invalid invitation link.' }
+    return { error: 'Invalid or missing invitation link.' }
   }
 
-  // 3. Acceptance Test #5 Checks: Expired or Already Used[cite: 1]
+  // 3. Validation Checks (Expiration, Re-use, Email Match)
   if (invite.accepted_at) {
-    return { error: 'This invitation has already been used.' }
+    return { error: 'This invitation link has already been used.' }
   }
 
-  if (new Date(invite.expires_at) < new Date()) {
+  if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
     return { error: 'This invitation link has expired.' }
   }
 
-  // Optional: Strict email check (prevents User A from accepting an invite sent to User B)
   if (invite.email.toLowerCase() !== user.email?.toLowerCase()) {
-    return { error: `This invite was sent to ${invite.email}. You are logged in as ${user.email}.` }
+    return { 
+      error: `This invite was sent to ${invite.email}. You are logged in as ${user.email}.` 
+    }
   }
 
-  // 4. Insert into memberships
-  const { error: memberError } = await supabase
-    .from('memberships')
-    .insert({
+  // 4. Upsert Membership
+  const { error: membershipError } = await supabase.from('memberships').upsert(
+    {
       tenant_id: invite.tenant_id,
-      user_id: user.id,
-      role: invite.role,
-    })
+      user_id: user.id, 
+      role: invite.role || 'member'
+    }, 
+    { onConflict: 'tenant_id, user_id' }
+  )
 
-  if (memberError) {
-    if (memberError.code === '23505') { // Postgres unique violation code
-      return { error: 'You are already a member of this workspace.' }
-    }
+  if (membershipError) {
     return { error: 'Failed to join the organization.' }
   }
 
-  // 5. Mark token as accepted
+  // 5. Mark Invitation as Accepted (Fixed column name)
   await supabase
     .from('invitations')
     .update({ accepted_at: new Date().toISOString() })
     .eq('id', invite.id)
 
-  // 6. Redirect into the workspace
-  // @ts-ignore - Supabase TS inference sometimes misses joined tables
-  const tenantSlug = invite.tenants.slug
-  redirect(`/${tenantSlug}/dashboard`)
+  // 6. Extract Tenant Slug safely (Fixed property name)
+  const tenant = Array.isArray(invite.tenants) ? invite.tenants[0] : invite.tenants 
+  const tenantSlug = tenant?.slug 
+
+  // 7. Redirect to Dashboard
+  if (tenantSlug) {
+    redirect(`/org/${tenantSlug}/dashboard?success=invite-accepted`)
+  }
+
+  redirect('/dashboard')
 }

@@ -1,73 +1,86 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
-import { createInvitation } from './actions'
+import { createClient } from "@/utils/supabase/client"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { createInvitation } from "./actions"
 
 interface InviteMemberFormProps {
-  tenantId: string
-  initialInviteUrl?: string
+  tenantId: string 
+  inviteUrlProp?: string 
 }
 
-export default function InviteMemberForm({
-  tenantId,
-  initialInviteUrl,
-}: InviteMemberFormProps) {
+export default function InviteMemberForm({ tenantId, inviteUrlProp }: InviteMemberFormProps) {
   const router = useRouter()
   const supabase = createClient()
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null) 
+  const [inviteUrl, setInviteUrl] = useState<string | null>(inviteUrlProp || null)
   const [email, setEmail] = useState('')
   const [role, setRole] = useState('member')
-  const [inviteUrl, setInviteUrl] = useState<string | null>(initialInviteUrl || null)
-  const [error, setError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [signingOut, setSigningOut] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError(null)
     setSuccessMessage(null)
+    setIsSubmitting(true)
 
-    // Send request to server action
-    const res = await createInvitation({ tenantId, email, role })
-
-    if (res?.error) {
-      // Keep user on the form and display the error message persistently
-      setError(res.error)
-      setLoading(false)
-    } else if (res?.inviteUrl) {
-      // Display persistent success banner and generated invite link
-      setInviteUrl(res.inviteUrl)
-      setSuccessMessage(`Invitation link successfully generated for ${res.successEmail}!`)
-      setEmail('') // Clear email input field for next invitation
-      setLoading(false)
+    try {
+      const res = await createInvitation({ tenantId, role, email })
+      
+      if (res.error) {
+        setError(res.error)
+      } else if (res.inviteUrl) {
+        setInviteUrl(res.inviteUrl)
+        setSuccessMessage(`An invitation has been sent to ${email}`)
+        setEmail('')
+      }
+    } catch (err) {
+      console.error("Invitation failed:", err)
+      setError('An error occurred. Please try again later.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   async function handleSignOut() {
+    setError(null)
     setSigningOut(true)
-    const { error } = await supabase.auth.signOut()
-    if (!error) {
+
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+
       router.push('/login')
       router.refresh()
-    } else {
+    } catch (err) {
+      setError('Failed to sign out. Please check your network connection.')
       setSigningOut(false)
-      console.error('Error signing out:', error.message)
+    }
+  } 
+
+  async function handleClipBoard(text: string) {
+    if (!navigator?.clipboard) {
+      setError('Clipboard operations are not supported in this browser.')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 3000)
+    } catch (err) {
+      setError('Failed to copy to clipboard.')
     }
   }
 
-  function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 3000)
-  }
-
+ 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Header Container with Title & Sign Out Button */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-gray-900">Invite a Member</h2>
@@ -75,7 +88,7 @@ export default function InviteMemberForm({
           type="button"
           onClick={handleSignOut}
           disabled={signingOut}
-          className="cursor-pointer rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700 focus:outline-none disabled:opacity-50"
+          className="cursor-pointer disabled:cursor-out-allowed rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700 focus:outline-none disabled:opacity-50"
         >
           {signingOut ? 'Signing Out...' : 'Sign Out'}
         </button>
@@ -120,7 +133,7 @@ export default function InviteMemberForm({
             />
             <button
               type="button"
-              onClick={() => copyToClipboard(inviteUrl)}
+              onClick={() => handleClipBoard(inviteUrl)}
               className="cursor-pointer rounded bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-800"
             >
               {copied ? 'Copied!' : 'Copy'}
@@ -140,7 +153,7 @@ export default function InviteMemberForm({
           value={email}
           onChange={(e) => {
             setEmail(e.target.value)
-            if (error) setError(null) // Clear error on edit
+            if (error) setError(null)
           }}
           placeholder="colleague@gmail.com"
           className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none ${
@@ -168,11 +181,15 @@ export default function InviteMemberForm({
 
       <button
         type="submit"
-        disabled={loading}
-        className="w-full cursor-pointer rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+        disabled={isSubmitting}
+        className="w-full disabled:cursor-not-allowed cursor-pointer rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
       >
-        {loading ? 'Generating...' : 'Generate Invite Link'}
+        {isSubmitting ? 'Generating...' : 'Generate Invite Link'}
       </button>
     </form>
   )
 }
+
+
+
+
