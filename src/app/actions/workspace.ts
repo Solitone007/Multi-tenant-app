@@ -1,7 +1,8 @@
 'use server'
 
-import { createClient } from "@/utils/supabase/server"
-import { redirect } from "next/navigation"
+import { createClient as createServerClient } from '@/utils/supabase/server'
+import { createClient } from '@supabase/supabase-js'
+import { redirect } from 'next/navigation'
 
 export async function createWorkspace(formData: FormData) {
   const name = formData.get('name')?.toString().trim()
@@ -11,43 +12,54 @@ export async function createWorkspace(formData: FormData) {
     return { error: 'Workspace name and slug are required.' }
   }
 
-  const supabase = await createClient()
+  // 1. Get current logged-in user session from regular cookies client
+  const supabaseUserClient = await createServerClient()
+  const { data: { user }, error: authError } = await supabaseUserClient.auth.getUser()
 
-  // 1. Verify user session
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
-    return { error: 'You must be signed in to create a workspace.' }
+    return { error: 'You must be logged in to create a workspace.' }
   }
 
-  // 2. Insert tenant WITHOUT .select()
-  // Generate a random UUID for tenant_id upfront so we can reference it without reading back
+  // 2. Initialize Admin Client with Service Role Key (Bypasses RLS)
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  )
+
   const tenantId = crypto.randomUUID()
 
-  const { error: tenantError } = await supabase
+  // 3. Insert Tenant (bypasses RLS check)
+  const { error: tenantError } = await supabaseAdmin
     .from('tenants')
     .insert({
       id: tenantId,
       name,
-      slug
+      slug,
     })
 
   if (tenantError) {
     return { error: `Failed to create workspace: ${tenantError.message}` }
   }
 
-  // 3. Immediately insert Owner membership using the known tenantId
-  const { error: memberError } = await supabase
+  // 4. Insert Membership for Owner
+  const { error: memberError } = await supabaseAdmin
     .from('memberships')
     .insert({
       tenant_id: tenantId,
       user_id: user.id,
-      role: 'owner'
+      role: 'owner',
     })
 
   if (memberError) {
-    return { error: `Failed to assign ownership: ${memberError.message}` }
+    return { error: `Failed to assign membership: ${memberError.message}` }
   }
 
-  // 4. Redirect to the newly created organization dashboard
+  // 5. Redirect to Dashboard
   redirect(`/org/${slug}/dashboard?created=true`)
 }
